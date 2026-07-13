@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: NextRequest) {
   const tokenHash = request.nextUrl.searchParams.get("token_hash");
   const type = request.nextUrl.searchParams.get("type") as EmailOtpType | null;
+  const code = request.nextUrl.searchParams.get("code");
   const redirectTo = request.nextUrl.clone();
 
   redirectTo.search = "";
@@ -22,6 +23,16 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  if (code) {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (!error) {
+      redirectTo.pathname = "/home";
+      return NextResponse.redirect(redirectTo);
+    }
+  }
+
   redirectTo.pathname = "/";
   redirectTo.searchParams.set(
     "authError",
@@ -29,4 +40,3 @@ export async function GET(request: NextRequest) {
   );
   return NextResponse.redirect(redirectTo);
 }
-
