@@ -1,26 +1,480 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  --background: #fffaf6;
   --foreground: #171717;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Optional dark theme, controlled from the profile settings panel */
+
+.dark-mode {
+  background: #181a21;
+  color: #f7f2e8;
+}
+
+.dark-mode > section,
+.dark-mode .bg-\[\#fffaf6\] {
+  background-color: #23252e;
+}
+
+.dark-mode .bg-white {
+  background-color: rgba(43, 45, 55, 0.92);
+}
+
+.dark-mode button,
+.dark-mode nav,
+.dark-mode h1,
+.dark-mode h2,
+.dark-mode h3,
+.dark-mode p,
+.dark-mode .text-black {
+  color: #f7f2e8;
+}
+
+.dark-mode .text-gray-500,
+.dark-mode .text-gray-400,
+.dark-mode .text-gray-300 {
+  color: #c8c2b8;
+}
+
+.dark-mode .bg-pink-100 {
+  background-color: rgba(244, 114, 182, 0.16);
+}
+
+.dark-mode .bg-pink-300,
+.dark-mode .bg-pink-400 {
+  color: #fffaf2;
+}
+
+.dark-mode .bg-gray-50,
+.dark-mode .bg-gray-100 {
+  background-color: rgba(255, 255, 255, 0.11);
+}
+
+.dark-mode .hover\:bg-white:hover {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.dark-mode input {
+  color: #f5f5f7;
+}
+
+.dark-mode input::placeholder {
+  color: #9ca3af;
+}
+
+.dark-mode .border-gray-400 {
+  border-color: #737783;
 }
 
 body {
-  background: var(--background);
+  background: #e9edf3;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  overflow: hidden;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  border: none;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+img {
+  display: block;
+}
+
+.eyebrow-pink {
+  color: #ff6eae !important;
+}
+
+.section-pink {
+  color: #f2a3d0 !important;
+}
+
+/* Swappable accent themes */
+
+.theme-rose {
+  --login-glow: rgba(179, 90, 102, 0.95);
+  scrollbar-color: #b35a66 transparent;
+}
+
+.theme-rose .eyebrow-pink,
+.theme-rose .section-pink,
+.theme-rose .text-pink-200,
+.theme-rose .text-pink-300,
+.theme-rose .text-pink-400 {
+  color: #b35a66 !important;
+}
+
+.theme-rose:not(.dark-mode) .eyebrow-pink,
+.theme-rose:not(.dark-mode) .section-pink,
+.theme-rose:not(.dark-mode) .text-pink-200,
+.theme-rose:not(.dark-mode) .text-pink-300,
+.theme-rose:not(.dark-mode) .text-pink-400 {
+  color: #b35a66 !important;
+}
+
+.theme-rose .bg-pink-100 {
+  background-color: rgba(179, 90, 102, 0.3) !important;
+}
+
+.theme-rose .bg-pink-200,
+.theme-rose .bg-pink-300,
+.theme-rose .bg-pink-400 {
+  background-color: #b35a66 !important;
+  color: #fff8f4 !important;
+}
+
+.theme-rose .border-pink-200,
+.theme-rose .border-pink-300,
+.theme-rose .border-pink-400 {
+  border-color: #b35a66 !important;
+}
+
+.theme-rose .hover\:bg-pink-50:hover,
+.theme-rose .hover\:bg-pink-200:hover {
+  background-color: rgba(179, 90, 102, 0.3) !important;
+}
+
+.theme-rose *::-webkit-scrollbar-thumb {
+  background: #b35a66;
+}
+
+.theme-sunset {
+  --login-glow: rgba(232, 148, 95, 0.96);
+  scrollbar-color: #e8945f transparent;
+}
+
+.theme-sunset .eyebrow-pink,
+.theme-sunset .section-pink,
+.theme-sunset .text-pink-200,
+.theme-sunset .text-pink-300,
+.theme-sunset .text-pink-400 {
+  color: #efa06d !important;
+}
+
+.theme-sunset .bg-pink-100 {
+  background-color: rgba(232, 148, 95, 0.18) !important;
+}
+
+.theme-sunset .bg-pink-200,
+.theme-sunset .bg-pink-300,
+.theme-sunset .bg-pink-400 {
+  background-color: #e8945f !important;
+}
+
+.theme-sunset .border-pink-200,
+.theme-sunset .border-pink-300,
+.theme-sunset .border-pink-400 {
+  border-color: #eda878 !important;
+}
+
+.theme-sunset .hover\:bg-pink-50:hover,
+.theme-sunset .hover\:bg-pink-200:hover {
+  background-color: rgba(232, 148, 95, 0.18) !important;
+}
+
+.theme-sunset *::-webkit-scrollbar-thumb {
+  background: #e8945f;
+}
+
+.theme-sunset .vinyl-classic-shine {
+  filter: hue-rotate(35deg) saturate(1.35);
+}
+
+/* Vinyl rotation while music is playing */
+
+.vinyl-spin {
+  animation: vinylRotation 7s linear infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.vinyl-classic {
+  background:
+    repeating-radial-gradient(
+      circle,
+      transparent 0,
+      transparent 6px,
+      rgba(118, 124, 132, 0.34) 7px,
+      rgba(12, 13, 16, 0.92) 8px,
+      transparent 10px
+    ),
+    radial-gradient(
+      circle at 52% 47%,
+      #25272c 0%,
+      #15171b 34%,
+      #202329 62%,
+      #090a0d 100%
+    );
+  box-shadow:
+    inset 0 0 32px rgba(255, 255, 255, 0.1),
+    inset 0 0 78px rgba(0, 0, 0, 0.66),
+    0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.vinyl-classic-shine {
+  background:
+    linear-gradient(
+      112deg,
+      transparent 18%,
+      rgba(255, 255, 255, 0.025) 30%,
+      rgba(218, 222, 230, 0.2) 43%,
+      rgba(255, 225, 239, 0.12) 49%,
+      rgba(218, 222, 230, 0.16) 55%,
+      transparent 70%
+    ),
+    conic-gradient(
+      from 12deg,
+      transparent 0deg 74deg,
+      rgba(255, 255, 255, 0.055) 92deg,
+      transparent 112deg 252deg,
+      rgba(255, 255, 255, 0.04) 270deg,
+      transparent 292deg 360deg
+    );
+  mix-blend-mode: screen;
+  opacity: 0.9;
+}
+
+/* Blurred artwork wash that changes with the current song */
+
+.song-background {
+  animation: songBackgroundEntrance 0.8s ease-out;
+  filter: blur(55px) saturate(1.7) contrast(1.05);
+  opacity: 0.55;
+  transform: scale(1.12);
+}
+
+@keyframes songBackgroundEntrance {
+  from {
+    opacity: 0;
+    transform: scale(1.2);
+  }
+
+  to {
+    opacity: 0.55;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes vinylRotation {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Cute smooth scrollbar */
+
+::-webkit-scrollbar {
+  width: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #f7b3d3;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #f28cbb;
+}
+
+/* Firefox scrollbar */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #f7b3d3 transparent;
+}
+
+/* Smooth buttons */
+
+button {
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    opacity 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+button:active {
+  transform: scale(0.96);
+}
+
+/* Prevent accidental text selection while dragging the vinyl timeline */
+
+.touch-none {
+  touch-action: none;
+  user-select: none;
+}
+
+/* Soft entrance animation */
+
+@keyframes pageEntrance {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+main {
+  animation: pageEntrance 0.55s ease-out;
+}
+
+/* Profile popup animation */
+
+@keyframes popupEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.z-\[120\] > div {
+  animation: popupEntrance 0.25s ease-out;
+}
+
+/* Login experience */
+
+.login-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
+}
+
+.theme-rose .login-theme-wash {
+  background:
+    radial-gradient(circle at 18% 20%, rgba(179, 90, 102, 0.26), transparent 34%),
+    radial-gradient(circle at 82% 75%, rgba(220, 166, 151, 0.16), transparent 30%),
+    linear-gradient(135deg, #17151b 0%, #272128 48%, #151419 100%) !important;
+}
+
+.theme-rose .login-record-label {
+  background: radial-gradient(circle, #f8e1e2 0%, #b35a66 52%, #743b47 100%) !important;
+}
+
+.theme-rose .login-primary-button {
+  background: linear-gradient(90deg, #9f4f5d, #b35a66, #c8757e) !important;
+  box-shadow: 0 16px 42px rgba(179, 90, 102, 0.3);
+}
+
+.theme-sunset .login-theme-wash {
+  background:
+    radial-gradient(circle at 18% 20%, rgba(232, 148, 95, 0.27), transparent 34%),
+    radial-gradient(circle at 82% 75%, rgba(193, 92, 67, 0.22), transparent 30%),
+    linear-gradient(135deg, #191616 0%, #2b2422 48%, #171414 100%) !important;
+}
+
+.theme-sunset .login-record-label {
+  background: radial-gradient(circle, #f3c095 0%, #e8945f 50%, #91462f 100%) !important;
+  box-shadow:
+    0 0 0 10px #08080a,
+    0 0 40px rgba(232, 148, 95, 0.46) !important;
+}
+
+.theme-sunset .login-primary-button {
+  background: linear-gradient(90deg, #d9774f, #eca56b, #c9634e) !important;
+  box-shadow: 0 16px 42px rgba(205, 106, 70, 0.34);
+}
+
+.theme-sunset .login-orbit-dot {
+  background-color: #e8945f !important;
+  box-shadow: 0 0 32px rgba(232, 148, 95, 0.92) !important;
+}
+
+.login-record {
+  animation: loginRecordSpin 16s linear infinite;
+  background:
+    repeating-radial-gradient(
+      circle,
+      transparent 0 6px,
+      rgba(140, 145, 154, 0.3) 7px,
+      rgba(5, 5, 7, 0.88) 8px,
+      transparent 10px
+    ),
+    radial-gradient(circle at 48% 44%, #303139, #14151a 55%, #050507 100%);
+}
+
+.login-record-shine {
+  background: linear-gradient(
+    118deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.03) 34%,
+    rgba(255, 212, 232, 0.18) 47%,
+    rgba(255, 255, 255, 0.04) 58%,
+    transparent 72%
+  );
+  mix-blend-mode: screen;
+}
+
+.login-mini-record {
+  position: relative;
+  animation: loginRecordSpin 8s linear infinite;
+  background: repeating-radial-gradient(
+    circle,
+    #08080a 0 4px,
+    #292a31 5px,
+    #0b0b0e 7px
+  );
+}
+
+.login-orbit-dot {
+  animation: loginDotPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes loginRecordSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loginDotPulse {
+  50% {
+    box-shadow: 0 0 45px var(--login-glow, rgba(231, 154, 183, 1));
+    transform: scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-record,
+  .login-mini-record,
+  .login-orbit-dot {
+    animation: none;
+  }
 }
