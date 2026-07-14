@@ -245,15 +245,30 @@ export default function HomePage() {
         localStorage.setItem("vinyl-profile-email", data.user.email ?? "");
 
         if (profile) {
+          const themeWasMigrated =
+            localStorage.getItem("vinyl-backend-theme-restored") === "true";
+          const restoredDarkMode = themeWasMigrated
+            ? profile.dark_mode
+            : true;
+
           setProfileName(profile.display_name);
           setUniqueUsername(profile.username);
           setProfileAvatar(profile.avatar_url ?? "");
           setAccentTheme(profile.accent_theme === "sunset" ? "sunset" : "rose");
-          setDarkMode(profile.dark_mode);
+          setDarkMode(restoredDarkMode);
           localStorage.setItem("vinyl-profile-name", profile.display_name);
           localStorage.setItem("vinyl-username", profile.username);
+          localStorage.setItem("vinyl-dark-mode", String(restoredDarkMode));
           if (profile.avatar_url) {
             localStorage.setItem("vinyl-profile-avatar", profile.avatar_url);
+          }
+
+          if (!themeWasMigrated) {
+            localStorage.setItem("vinyl-backend-theme-restored", "true");
+            void supabase
+              .from("profiles")
+              .update({ dark_mode: true })
+              .eq("id", data.user.id);
           }
         }
 
@@ -1929,21 +1944,7 @@ export default function HomePage() {
         <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
           <div
             key={currentSong?.id.videoId ?? "default-background"}
-            className="song-background song-background-base absolute -inset-[12%] bg-cover bg-center"
-            style={{
-              backgroundImage: `url("${getThumbnail(currentSong)}")`,
-            }}
-          />
-          <div
-            key={`${currentSong?.id.videoId ?? "default"}-primary-bloom`}
-            className="song-background song-background-bloom song-background-bloom-primary absolute -right-[12%] -top-[30%] h-[120%] w-[82%] rounded-full"
-            style={{
-              backgroundImage: `url("${getThumbnail(currentSong)}")`,
-            }}
-          />
-          <div
-            key={`${currentSong?.id.videoId ?? "default"}-secondary-bloom`}
-            className="song-background song-background-bloom song-background-bloom-secondary absolute -bottom-[38%] left-[18%] h-[92%] w-[72%] rounded-full"
+            className="song-background absolute -inset-[12%] bg-cover bg-center"
             style={{
               backgroundImage: `url("${getThumbnail(currentSong)}")`,
             }}
@@ -1951,12 +1952,21 @@ export default function HomePage() {
           <div
             className="absolute inset-0"
             style={{
-              background: darkMode
-                ? "linear-gradient(90deg, rgba(17,18,24,0.76) 0%, rgba(22,23,30,0.34) 42%, rgba(17,18,24,0.54) 100%), linear-gradient(180deg, rgba(15,16,22,0.1), rgba(15,16,22,0.42))"
-                : "linear-gradient(90deg, rgba(255,250,246,0.72) 0%, rgba(255,250,246,0.26) 44%, rgba(255,252,248,0.5) 100%), linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,250,246,0.3))",
+              background:
+                darkMode
+                  ? "linear-gradient(105deg, rgba(28,29,37,0.82) 0%, rgba(38,39,49,0.58) 42%, rgba(24,25,32,0.72) 100%)"
+                  : "linear-gradient(105deg, rgba(255,250,246,0.82) 0%, rgba(255,250,246,0.52) 42%, rgba(255,255,255,0.68) 100%)",
             }}
           />
-          <div className="login-noise absolute inset-0 opacity-[0.08]" />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                darkMode
+                  ? "radial-gradient(circle at 72% 42%, rgba(255,255,255,0.1), rgba(20,21,28,0.42) 72%)"
+                  : "radial-gradient(circle at 72% 42%, rgba(255,255,255,0.08), rgba(255,250,246,0.48) 72%)",
+            }}
+          />
         </div>
 
         <nav className="absolute left-[36%] right-8 top-5 z-40 flex items-center justify-between">
