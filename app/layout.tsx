@@ -59,7 +59,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <footer className="fixed bottom-3 right-4 z-[200] rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-[11px] font-medium tracking-[0.08em] text-[#fff8f1]/80 shadow-lg backdrop-blur-md sm:right-5">
+          Built by Avi ♡
+        </footer>
+      </body>
     </html>
   );
 }
