@@ -261,9 +261,22 @@ img {
 
 .song-background {
   animation: songBackgroundEntrance 0.8s ease-out;
-  filter: blur(55px) saturate(1.7) contrast(1.05);
+  filter: blur(78px) saturate(1.65) contrast(1.02);
   opacity: 0.55;
-  transform: scale(1.12);
+  transform: scale(1.18);
+}
+
+.song-background-tint {
+  animation: songBackgroundEntrance 1s ease-out;
+  filter: blur(125px) saturate(1.95);
+  mask-image: radial-gradient(
+    ellipse 70% 68% at 68% 45%,
+    black 0%,
+    rgba(0, 0, 0, 0.72) 42%,
+    transparent 78%
+  );
+  opacity: 0.22;
+  transform: scale(1.28);
 }
 
 @keyframes songBackgroundEntrance {
