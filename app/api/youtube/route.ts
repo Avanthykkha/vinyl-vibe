@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -80,11 +81,51 @@ type CachedSearch = {
 
 declare global {
   var vinylYouTubeSearchCache: Map<string, CachedSearch> | undefined;
+  var vinylSearchRateFallback:
+    | Map<string, { count: number; windowStartedAt: number }>
+    | undefined;
 }
 
 const searchCache =
   globalThis.vinylYouTubeSearchCache ?? new Map<string, CachedSearch>();
 globalThis.vinylYouTubeSearchCache = searchCache;
+const fallbackRateLimits =
+  globalThis.vinylSearchRateFallback ??
+  new Map<string, { count: number; windowStartedAt: number }>();
+globalThis.vinylSearchRateFallback = fallbackRateLimits;
+
+async function canSearch(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+) {
+  const { data, error } = await supabase.rpc(
+    "consume_youtube_search_quota",
+    {
+      request_limit: 12,
+      window_seconds: 60,
+      daily_limit: Math.max(
+        1,
+        Math.min(
+          Number(process.env.YOUTUBE_DAILY_SEARCH_BUDGET) || 80,
+          10_000
+        )
+      ),
+    }
+  );
+
+  if (!error) return data === true;
+
+  // Keeps local development usable before migration 002 is applied. The
+  // database function is the durable limiter used by production instances.
+  const now = Date.now();
+  const existing = fallbackRateLimits.get(userId);
+  if (!existing || now - existing.windowStartedAt >= 60_000) {
+    fallbackRateLimits.set(userId, { count: 1, windowStartedAt: now });
+    return true;
+  }
+  existing.count += 1;
+  return existing.count <= 12;
+}
 
 function fallbackSongs(query: string) {
   return starterSongs(query);
@@ -92,13 +133,22 @@ function fallbackSongs(query: string) {
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user) {
+      return NextResponse.json(
+        { error: "Sign in to search Vinyl." },
+        { status: 401 }
+      );
+    }
+
     const apiKey = process.env.YOUTUBE_API_KEY;
     const searchParams = request.nextUrl.searchParams;
     const query =
-      searchParams.get("q")?.trim() ||
+      searchParams.get("q")?.trim().slice(0, 120) ||
       "Sai Abhyankkar official music";
     const pageToken =
-      searchParams.get("pageToken")?.trim() || "";
+      searchParams.get("pageToken")?.trim().slice(0, 200) || "";
     const cacheKey = `${query.toLowerCase().replace(/\s+/g, " ")}|${pageToken}`;
     const cached = searchCache.get(cacheKey);
 
@@ -113,6 +163,16 @@ export async function GET(request: NextRequest) {
         fallback: true,
         error: "YouTube search is not configured on the server.",
       });
+    }
+
+    if (!(await canSearch(supabase, authData.user.id))) {
+      return NextResponse.json(
+        { error: "Too many searches at once. Try again in a minute." },
+        {
+          status: 429,
+          headers: { "Retry-After": "60", "Cache-Control": "no-store" },
+        }
+      );
     }
     const musicQuery = /\b(music|song|official|audio|lyrics?|mv)\b/i.test(
       query

@@ -100,8 +100,21 @@ export default function PartyRoomPage() {
         memberNameRef.current = `@${
           profile?.username || profile?.display_name || "vinyl-friend"
         }`;
-        setLikedSongs(JSON.parse(localStorage.getItem("vinyl-liked") || "[]"));
-        setPlaylists(JSON.parse(localStorage.getItem("vinyl-playlists") || "[]"));
+        const { data: library } = await supabase
+          .from("music_libraries")
+          .select("liked_songs, playlists")
+          .eq("user_id", data.user.id)
+          .maybeSingle();
+        setLikedSongs(
+          Array.isArray(library?.liked_songs)
+            ? (library.liked_songs as Song[])
+            : JSON.parse(localStorage.getItem("vinyl-liked") || "[]")
+        );
+        setPlaylists(
+          Array.isArray(library?.playlists)
+            ? (library.playlists as Playlist[])
+            : JSON.parse(localStorage.getItem("vinyl-playlists") || "[]")
+        );
       })();
       return;
     }
@@ -132,6 +145,21 @@ export default function PartyRoomPage() {
     });
     if (response.ok) setRoom(await response.json());
   }, [code]);
+
+  const saveLibraryPatch = useCallback(
+    async (patch: { liked_songs?: Song[]; playlists?: Playlist[] }) => {
+      if (!backendReady) return;
+      const supabase = createSupabaseClient();
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) return;
+      await supabase.from("music_libraries").upsert({
+        user_id: data.user.id,
+        ...patch,
+        updated_at: new Date().toISOString(),
+      });
+    },
+    [backendReady]
+  );
 
   useEffect(() => {
     if (!code) return;
@@ -264,6 +292,7 @@ export default function PartyRoomPage() {
       : [song, ...likedSongs];
     setLikedSongs(next);
     localStorage.setItem("vinyl-liked", JSON.stringify(next));
+    void saveLibraryPatch({ liked_songs: next });
   }
 
   function addCurrentSongToPlaylist(playlistId: string) {
@@ -276,6 +305,7 @@ export default function PartyRoomPage() {
     );
     setPlaylists(next);
     localStorage.setItem("vinyl-playlists", JSON.stringify(next));
+    void saveLibraryPatch({ playlists: next });
     setPlaylistPickerOpen(false);
   }
 

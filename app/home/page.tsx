@@ -137,6 +137,8 @@ export default function HomePage() {
   const router = useRouter();
   const backendReady = isSupabaseConfigured();
   const [authChecked, setAuthChecked] = useState(false);
+  const [cloudUserId, setCloudUserId] = useState("");
+  const [cloudLibraryLoaded, setCloudLibraryLoaded] = useState(false);
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [heading, setHeading] = useState("SAI ABHYANKKAR");
@@ -193,7 +195,7 @@ export default function HomePage() {
   const [storageLoaded, setStorageLoaded] = useState(false);
 
   const [profileOpen, setProfileOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
   const [accentTheme, setAccentTheme] = useState<AccentTheme>("rose");
   const [profileAvatar, setProfileAvatar] = useState("");
   const [hiddenHomeSongIds, setHiddenHomeSongIds] = useState<string[]>([]);
@@ -239,15 +241,16 @@ export default function HomePage() {
         if (cancelled) return;
 
         const nextVinylId = `VINYL-${data.user.id.slice(0, 8).toUpperCase()}`;
+        setCloudUserId(data.user.id);
         setVinylId(nextVinylId);
         setProfileEmail(data.user.email ?? "");
         localStorage.setItem("vinyl-user-id", data.user.id);
         localStorage.setItem("vinyl-profile-email", data.user.email ?? "");
 
         if (profile) {
-          const themeWasMigrated =
-            localStorage.getItem("vinyl-backend-theme-restored") === "true";
-          const restoredDarkMode = themeWasMigrated
+          const classicThemeWasRestored =
+            localStorage.getItem("vinyl-classic-dark-restored-v2") === "true";
+          const restoredDarkMode = classicThemeWasRestored
             ? profile.dark_mode
             : true;
 
@@ -263,12 +266,15 @@ export default function HomePage() {
             localStorage.setItem("vinyl-profile-avatar", profile.avatar_url);
           }
 
-          if (!themeWasMigrated) {
-            localStorage.setItem("vinyl-backend-theme-restored", "true");
-            void supabase
+          if (!classicThemeWasRestored) {
+            const { error: themeRestoreError } = await supabase
               .from("profiles")
               .update({ dark_mode: true })
               .eq("id", data.user.id);
+
+            if (!themeRestoreError) {
+              localStorage.setItem("vinyl-classic-dark-restored-v2", "true");
+            }
           }
         }
 
@@ -369,7 +375,10 @@ export default function HomePage() {
         setProfileAvatar(storedProfileAvatar);
       }
 
-      if (storedDarkMode) {
+      // Supabase is the source of truth for signed-in accounts. Reading the
+      // device value here used to race the profile request and flip the app
+      // back to light mode after the dark album background had loaded.
+      if (storedDarkMode && !backendReady) {
         setDarkMode(storedDarkMode === "true");
       }
 
@@ -414,7 +423,212 @@ export default function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [backendReady]);
+
+  useEffect(() => {
+    if (
+      !backendReady ||
+      !authChecked ||
+      !storageLoaded ||
+      !cloudUserId ||
+      cloudLibraryLoaded
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    const supabase = createSupabaseClient();
+
+    void (async () => {
+      const { data, error: libraryError } = await supabase
+        .from("music_libraries")
+        .select(
+          "liked_songs, history, playlists, followed_artists, preferred_artists, hidden_home_song_ids, not_interested_artists, queue, autoplay_enabled, device_migrated"
+        )
+        .eq("user_id", cloudUserId)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (data?.device_migrated) {
+        if (Array.isArray(data.liked_songs)) setLikedSongs(data.liked_songs as Song[]);
+        if (Array.isArray(data.history)) setHistory(data.history as Song[]);
+        if (Array.isArray(data.playlists)) setPlaylists(data.playlists as Playlist[]);
+        if (Array.isArray(data.followed_artists)) {
+          setFollowedArtists(data.followed_artists as string[]);
+        }
+        if (Array.isArray(data.preferred_artists)) {
+          setPreferredArtists(data.preferred_artists as string[]);
+        }
+        if (Array.isArray(data.hidden_home_song_ids)) {
+          setHiddenHomeSongIds(data.hidden_home_song_ids as string[]);
+        }
+        if (Array.isArray(data.not_interested_artists)) {
+          setNotInterestedArtists(data.not_interested_artists as string[]);
+        }
+        if (Array.isArray(data.queue)) setQueue(data.queue as Song[]);
+        if (typeof data.autoplay_enabled === "boolean") {
+          setAutoplayEnabled(data.autoplay_enabled);
+        }
+      } else if (!libraryError) {
+        // First cloud login: merge rather than replace, so visiting a party
+        // before Home can never wipe an existing device library.
+        const cloudLiked = Array.isArray(data?.liked_songs)
+          ? (data.liked_songs as Song[])
+          : [];
+        const cloudHistory = Array.isArray(data?.history)
+          ? (data.history as Song[])
+          : [];
+        const cloudPlaylists = Array.isArray(data?.playlists)
+          ? (data.playlists as Playlist[])
+          : [];
+        const mergedLiked = uniqueSongs([...likedSongs, ...cloudLiked]);
+        const mergedHistory = uniqueSongs([...history, ...cloudHistory]).slice(0, 30);
+        const mergedPlaylistMap = new Map(
+          playlists.map((playlist) => [playlist.id, playlist])
+        );
+        cloudPlaylists.forEach((cloudPlaylist) => {
+          const localPlaylist = mergedPlaylistMap.get(cloudPlaylist.id);
+          mergedPlaylistMap.set(
+            cloudPlaylist.id,
+            localPlaylist
+              ? {
+                  ...cloudPlaylist,
+                  ...localPlaylist,
+                  songs: uniqueSongs([
+                    ...localPlaylist.songs,
+                    ...cloudPlaylist.songs,
+                  ]),
+                }
+              : cloudPlaylist
+          );
+        });
+        const mergedPlaylists = Array.from(mergedPlaylistMap.values());
+        const mergedFollowedArtists = Array.from(
+          new Set([
+            ...followedArtists,
+            ...(Array.isArray(data?.followed_artists)
+              ? (data.followed_artists as string[])
+              : []),
+          ])
+        );
+        const mergedPreferredArtists = Array.from(
+          new Set([
+            ...preferredArtists,
+            ...(Array.isArray(data?.preferred_artists)
+              ? (data.preferred_artists as string[])
+              : []),
+          ])
+        );
+        const mergedHiddenIds = Array.from(
+          new Set([
+            ...hiddenHomeSongIds,
+            ...(Array.isArray(data?.hidden_home_song_ids)
+              ? (data.hidden_home_song_ids as string[])
+              : []),
+          ])
+        );
+        const mergedNotInterested = Array.from(
+          new Set([
+            ...notInterestedArtists,
+            ...(Array.isArray(data?.not_interested_artists)
+              ? (data.not_interested_artists as string[])
+              : []),
+          ])
+        );
+        const mergedQueue = uniqueSongs([
+          ...queue,
+          ...(Array.isArray(data?.queue) ? (data.queue as Song[]) : []),
+        ]);
+
+        setLikedSongs(mergedLiked);
+        setHistory(mergedHistory);
+        setPlaylists(mergedPlaylists);
+        setFollowedArtists(mergedFollowedArtists);
+        setPreferredArtists(mergedPreferredArtists);
+        setHiddenHomeSongIds(mergedHiddenIds);
+        setNotInterestedArtists(mergedNotInterested);
+        setQueue(mergedQueue);
+
+        await supabase.from("music_libraries").upsert({
+          user_id: cloudUserId,
+          liked_songs: mergedLiked,
+          history: mergedHistory,
+          playlists: mergedPlaylists,
+          followed_artists: mergedFollowedArtists,
+          preferred_artists: mergedPreferredArtists,
+          hidden_home_song_ids: mergedHiddenIds,
+          not_interested_artists: mergedNotInterested,
+          queue: mergedQueue,
+          autoplay_enabled: autoplayEnabled,
+          device_migrated: true,
+        });
+      }
+
+      if (libraryError) {
+        console.error(
+          "Cloud library is unavailable. Run Supabase migration 002."
+        );
+      }
+      setCloudLibraryLoaded(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    authChecked,
+    autoplayEnabled,
+    backendReady,
+    cloudLibraryLoaded,
+    cloudUserId,
+    followedArtists,
+    hiddenHomeSongIds,
+    history,
+    likedSongs,
+    notInterestedArtists,
+    playlists,
+    preferredArtists,
+    queue,
+    storageLoaded,
+  ]);
+
+  useEffect(() => {
+    if (!backendReady || !cloudLibraryLoaded || !cloudUserId) return;
+
+    const timeoutId = window.setTimeout(() => {
+      const supabase = createSupabaseClient();
+      void supabase.from("music_libraries").upsert({
+        user_id: cloudUserId,
+        liked_songs: likedSongs,
+        history,
+        playlists,
+        followed_artists: followedArtists,
+        preferred_artists: preferredArtists,
+        hidden_home_song_ids: hiddenHomeSongIds,
+        not_interested_artists: notInterestedArtists,
+        queue,
+        autoplay_enabled: autoplayEnabled,
+        device_migrated: true,
+        updated_at: new Date().toISOString(),
+      });
+    }, 900);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    autoplayEnabled,
+    backendReady,
+    cloudLibraryLoaded,
+    cloudUserId,
+    followedArtists,
+    hiddenHomeSongIds,
+    history,
+    likedSongs,
+    notInterestedArtists,
+    playlists,
+    preferredArtists,
+    queue,
+  ]);
 
   useEffect(() => {
     if (!storageLoaded) return;
@@ -1949,12 +2163,21 @@ export default function HomePage() {
               backgroundImage: `url("${getThumbnail(currentSong)}")`,
             }}
           />
+          {currentSong && (
+            <div
+              key={`${currentSong.id.videoId}-ambient-tint`}
+              className="song-background-tint absolute inset-0 bg-cover bg-center"
+              style={{
+                backgroundImage: `url("${getThumbnail(currentSong)}")`,
+              }}
+            />
+          )}
           <div
             className="absolute inset-0"
             style={{
               background:
                 darkMode
-                  ? "linear-gradient(105deg, rgba(28,29,37,0.82) 0%, rgba(38,39,49,0.58) 42%, rgba(24,25,32,0.72) 100%)"
+                  ? "linear-gradient(105deg, rgba(28,29,37,0.78) 0%, rgba(38,39,49,0.54) 42%, rgba(24,25,32,0.68) 100%)"
                   : "linear-gradient(105deg, rgba(255,250,246,0.82) 0%, rgba(255,250,246,0.52) 42%, rgba(255,255,255,0.68) 100%)",
             }}
           />
