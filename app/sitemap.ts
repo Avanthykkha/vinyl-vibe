@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const siteUrl = "https://vinyl-vibe-six.vercel.app";
+const siteUrl = "https://vinyl-by-avi.netlify.app";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [

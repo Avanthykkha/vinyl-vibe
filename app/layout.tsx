@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-const siteUrl = "https://vinyl-vibe-six.vercel.app";
+const siteUrl = "https://vinyl-by-avi.netlify.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -61,8 +61,8 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {children}
-        <footer className="fixed bottom-3 right-4 z-[200] rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-[11px] font-medium tracking-[0.08em] text-[#fff8f1]/80 shadow-lg backdrop-blur-md sm:right-5">
-          Built by Avi ♡
+        <footer className="fixed bottom-4 right-5 z-[999] rounded-full border border-[#f2bbc7]/55 bg-[#8d4657]/90 px-5 py-2.5 text-sm font-semibold tracking-[0.06em] text-[#fff8f1] shadow-[0_12px_35px_rgba(0,0,0,.35)] backdrop-blur-xl sm:bottom-5 sm:right-7">
+          Built by Avi <span className="text-[#ffd2dc]">♡</span>
         </footer>
       </body>
     </html>
