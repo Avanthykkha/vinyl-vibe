@@ -61,8 +61,8 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {children}
-        <footer className="fixed bottom-4 right-5 z-[999] rounded-full border border-[#f2bbc7]/55 bg-[#8d4657]/90 px-5 py-2.5 text-sm font-semibold tracking-[0.06em] text-[#fff8f1] shadow-[0_12px_35px_rgba(0,0,0,.35)] backdrop-blur-xl sm:bottom-5 sm:right-7">
-          Built by Avi <span className="text-[#ffd2dc]">♡</span>
+        <footer className="pointer-events-none fixed bottom-2 right-3 z-[120] rounded-full border border-[#f2bbc7]/35 bg-[#8d4657]/55 px-3 py-1.5 text-[10px] font-semibold tracking-[0.05em] text-[#fff8f1]/85 shadow-[0_6px_18px_rgba(0,0,0,.2)] backdrop-blur-md sm:bottom-3 sm:right-4 sm:text-[11px]">
+          Built by Avi <span className="text-[#ffd2dc]/90">♡</span>
         </footer>
       </body>
     </html>
