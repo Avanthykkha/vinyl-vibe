@@ -101,7 +101,10 @@ async function canSearch(
   const { data, error } = await supabase.rpc(
     "consume_youtube_search_quota",
     {
-      request_limit: 12,
+      // Only listener-entered searches reach this limiter; automated Home
+      // discovery uses the curated catalog. Allow a comfortable burst for
+      // typing/retrying while still preventing abusive request loops.
+      request_limit: 30,
       window_seconds: 60,
       daily_limit: Math.max(
         1,
@@ -189,7 +192,7 @@ export async function GET(request: NextRequest) {
         fallback: true,
         quotaDepleted: true,
         error:
-          "Live YouTube search has reached today's shared limit. Showing Vinyl's curated catalog until it resets.",
+          "Live search is temporarily busy or has reached YouTube's shared limit. Showing Vinyl's curated catalog for now.",
       });
     }
     const musicQuery = /\b(music|song|official|audio|lyrics?|mv)\b/i.test(
