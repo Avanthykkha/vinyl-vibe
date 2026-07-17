@@ -799,11 +799,18 @@ export default function HomePage() {
     setPartyStatus("");
   }
 
-  async function fetchSongs(query: string, pageToken = "") {
+  async function fetchSongs(
+    query: string,
+    pageToken = "",
+    catalogOnly = false
+  ) {
     const params = new URLSearchParams({ q: query });
 
     if (pageToken) {
       params.set("pageToken", pageToken);
+    }
+    if (catalogOnly) {
+      params.set("catalog", "1");
     }
 
     const response = await fetch(
@@ -819,13 +826,17 @@ export default function HomePage() {
     return data as {
       items: Song[];
       nextPageToken: string | null;
+      fallback?: boolean;
+      quotaDepleted?: boolean;
+      error?: string;
     };
   }
 
   async function loadSongs(
     query: string,
     pageToken = "",
-    append = false
+    append = false,
+    catalogOnly = false
   ) {
     try {
       if (append) {
@@ -835,8 +846,12 @@ export default function HomePage() {
       }
       setError("");
 
-      const data = await fetchSongs(query, pageToken);
+      const data = await fetchSongs(query, pageToken, catalogOnly);
       const results = data.items ?? [];
+
+      if (!catalogOnly && data.fallback && data.error) {
+        setError(data.error);
+      }
 
       setSongs((previous) =>
         append
@@ -880,7 +895,9 @@ export default function HomePage() {
       const artist = getTasteArtist(song);
       const title = decodeText(song.snippet.title);
       const data = await fetchSongs(
-        `${artist} songs similar to ${title}`
+        `${artist} songs similar to ${title}`,
+        "",
+        true
       );
 
       const fetchedSongs = uniqueSongs(data.items || [])
@@ -951,7 +968,7 @@ export default function HomePage() {
 
       const responses = await Promise.all(
         recommendationQueries.map((query) =>
-          fetchSongs(query)
+          fetchSongs(query, "", true)
         )
       );
 
@@ -987,7 +1004,7 @@ export default function HomePage() {
     if (backendReady && !authChecked) return;
 
     const timeoutId = window.setTimeout(() => {
-      void loadSongs(DEFAULT_QUERY);
+      void loadSongs(DEFAULT_QUERY, "", false, true);
     }, 0);
 
     return () => window.clearTimeout(timeoutId);

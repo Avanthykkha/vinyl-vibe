@@ -149,11 +149,25 @@ export async function GET(request: NextRequest) {
       "Sai Abhyankkar official music";
     const pageToken =
       searchParams.get("pageToken")?.trim().slice(0, 200) || "";
-    const cacheKey = `${query.toLowerCase().replace(/\s+/g, " ")}|${pageToken}`;
+    const catalogOnly = searchParams.get("catalog") === "1";
+    const cacheKey = `${catalogOnly ? "catalog" : "live"}|${query
+      .toLowerCase()
+      .replace(/\s+/g, " ")}|${pageToken}`;
     const cached = searchCache.get(cacheKey);
 
     if (cached && cached.expiresAt > Date.now()) {
       return NextResponse.json({ ...cached.payload, cached: true });
+    }
+
+    // Automated discovery shelves use Vinyl's curated catalog. This keeps
+    // the limited YouTube search allowance available for queries listeners
+    // explicitly type into the search box.
+    if (catalogOnly) {
+      return NextResponse.json({
+        items: fallbackSongs(query),
+        nextPageToken: null,
+        fallback: true,
+      });
     }
 
     if (!apiKey) {
@@ -174,6 +188,8 @@ export async function GET(request: NextRequest) {
         nextPageToken: null,
         fallback: true,
         quotaDepleted: true,
+        error:
+          "Live YouTube search has reached today's shared limit. Showing Vinyl's curated catalog until it resets.",
       });
     }
     const musicQuery = /\b(music|song|official|audio|lyrics?|mv)\b/i.test(
