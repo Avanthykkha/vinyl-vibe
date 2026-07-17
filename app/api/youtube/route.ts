@@ -166,13 +166,15 @@ export async function GET(request: NextRequest) {
     }
 
     if (!(await canSearch(supabase, authData.user.id))) {
-      return NextResponse.json(
-        { error: "Too many searches at once. Try again in a minute." },
-        {
-          status: 429,
-          headers: { "Retry-After": "60", "Cache-Control": "no-store" },
-        }
-      );
+      // YouTube's search API has a strict shared daily quota. The Vinyl home
+      // must still be useful when that external quota is unavailable, so use
+      // the curated catalog instead of leaving every discovery shelf empty.
+      return NextResponse.json({
+        items: fallbackSongs(query),
+        nextPageToken: null,
+        fallback: true,
+        quotaDepleted: true,
+      });
     }
     const musicQuery = /\b(music|song|official|audio|lyrics?|mv)\b/i.test(
       query

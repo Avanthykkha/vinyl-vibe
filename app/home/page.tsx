@@ -248,8 +248,10 @@ export default function HomePage() {
         localStorage.setItem("vinyl-profile-email", data.user.email ?? "");
 
         if (profile) {
+          const darkModeInitializationKey =
+            `vinyl-dark-mode-initialized:${data.user.id}`;
           const classicThemeWasRestored =
-            localStorage.getItem("vinyl-classic-dark-restored-v2") === "true";
+            localStorage.getItem(darkModeInitializationKey) === "true";
           const restoredDarkMode = classicThemeWasRestored
             ? profile.dark_mode
             : true;
@@ -273,7 +275,7 @@ export default function HomePage() {
               .eq("id", data.user.id);
 
             if (!themeRestoreError) {
-              localStorage.setItem("vinyl-classic-dark-restored-v2", "true");
+              localStorage.setItem(darkModeInitializationKey, "true");
             }
           }
         }
@@ -982,6 +984,8 @@ export default function HomePage() {
   }
 
   useEffect(() => {
+    if (backendReady && !authChecked) return;
+
     const timeoutId = window.setTimeout(() => {
       void loadSongs(DEFAULT_QUERY);
     }, 0);
@@ -989,10 +993,10 @@ export default function HomePage() {
     return () => window.clearTimeout(timeoutId);
     // The initial query is intentionally loaded only once on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authChecked, backendReady]);
 
   useEffect(() => {
-    if (!storageLoaded) return;
+    if (!storageLoaded || (backendReady && !authChecked)) return;
 
     const timeoutId = window.setTimeout(() => {
       void loadPersonalizedRecommendations();
@@ -1001,7 +1005,7 @@ export default function HomePage() {
     return () => window.clearTimeout(timeoutId);
     // Refresh once after the complete saved taste profile is available.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storageLoaded]);
+  }, [authChecked, backendReady, storageLoaded]);
 
   useEffect(() => {
     if (!currentSong) return;
